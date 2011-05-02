@@ -57,7 +57,6 @@ if ($subject =~ /::(\w+)/) {
    $key = crypt($from, int(rand(99)));
    print "Creating new account with key: $key\n";
    $subject .= "$subject ::$key";
-#   $body .= "\n\n## DO NOT REMOVE THIS LINE:\nKEY::$key\n\n";
 }
 print "Received from: $from ($key)\n";
 
