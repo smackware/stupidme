@@ -10,8 +10,6 @@ our $DISPATCH_PID_PATH = "$DB_PATH/$DB_NAME.pid";
 our $HOUR = 3600;
 our $WEEK = $HOUR*24*7;
 
-*STDERR = *STDOUT;
-open STDOUT, ">> $LOG_PATH" or die "Failed opening log file";
 
 sub start_dispatcher($) {
     my ($pid_filepath) = @_;
@@ -40,6 +38,12 @@ sub start_dispatcher($) {
     exit(0); # Never get here...
 }
 
+*STDERR = *STDOUT;
+open STDOUT, ">> $LOG_PATH" or die "Failed opening log file";
+
+our $min_delay = shift @ARGV or $HOUR*2;
+our $max_delay = shift @ARGV or $WEEK*2;
+
 my $buffer;
 my $body = "";
 my $key;
@@ -65,7 +69,7 @@ print "Received from: $from ($key)\n";
 
 my $mail_filepath = "$DB_PATH/$key.body";
 my $timestamp_filepath = "$DB_PATH/$key.next_delivery";
-my $delivery_timestamp = int(rand($WEEK)) + ($HOUR*6) + int(time());
+my $delivery_timestamp = int(rand($max_delay - $min_delay) + ($min_delay) + time());
 die "Failed to open mail file: $mail_filepath\n" unless open(my $mail_fh, ">", "$mail_filepath");
 die "Failed to open timestamp file: $timestamp_filepath\n" unless open(my $time_fh, ">", "$timestamp_filepath");
 print "Will deliver on $delivery_timestamp, to $from\n";
