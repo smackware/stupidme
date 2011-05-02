@@ -1,12 +1,17 @@
+#!/usr/bin/env perl
 use strict;
 use warnings;
 
-our $DB_NAME = "pastme";
-our $DB_PATH = "/tmp/$DB_NAME";
-our $DISPATCH_PID_PATH = "/tmp/$DB_NAME.pid";
+our $DB_NAME = "stupidme";
+our $DB_PATH = "/tmp/";
+our $LOG_PATH = "$DB_PATH/$DB_NAME.log";
+our $DISPATCH_PID_PATH = "$DB_PATH/$DB_NAME.pid";
 
 our $HOUR = 3600;
 our $WEEK = $HOUR*24*7;
+
+*STDERR = *STDOUT;
+open STDOUT, ">> $LOG_PATH" or die "Failed opening log file";
 
 sub start_dispatcher($) {
     my ($pid_filepath) = @_;
@@ -43,7 +48,7 @@ my $subject = "";
 
 my $header_end = 0;
 while ($_ = <STDIN>) {
-    if ($from eq '' and /^From:.*\s<?([^\s]+@[^\s]+)>?.*/) { $from = $1; }
+    if ($from eq '' and /^From:.*\s<?([^\s]+@[^\s>]+)>?.*/) { $from = $1; }
     elsif ($subject eq '' and /^Subject:\s(.+)$/) { $subject = $1; }
     $_ eq "\n" and $header_end = 1;
     $body.= $_ if $header_end;
