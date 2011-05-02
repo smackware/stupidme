@@ -8,7 +8,6 @@ our $DISPATCH_PID_PATH = "/tmp/$DB_NAME.pid";
 our $HOUR = 3600;
 our $WEEK = $HOUR*24*7;
 
-
 sub start_dispatcher($) {
     my ($pid_filepath) = @_;
     if (my $pid = fork()) {
@@ -18,19 +17,20 @@ sub start_dispatcher($) {
         return;
     }
     while (1) {
-        sleep(30);
+        sleep(20);
         my $now = time();
         my @delivery_files = glob("$DB_PATH/*.next_delivery");
         for my $filepath (@delivery_files) {
             $filepath =~ /^(.+)\.next_delivery$/;
             my $body_filepath = "$1.body";
             open (my $fh, "<", $filepath) or next;
-            my $when = <$fh>;
-            my $to = <$fh>;
-            my $subject = "Re: ".<$fh>;
+            chomp(my $when = <$fh>);
+            chop(my $to = <$fh>);
+            chomp(my $subject = "Re: ".<$fh>);
             if ($when < $now) {
-                print "Sending '$subject' to $to...";
+                print "Sending '$subject' to $to...\n";
                 system("cat $body_filepath | mail -s '$subject' $to") and warn "Failed sending $body_filepath ($subject) to $to\n";
+		rename($filepath, "$filepath.sent")
             }
         }
     }
@@ -45,18 +45,13 @@ my $from = "";
 my $new = 0;
 my $subject = "";
 
-while (my $byte_count = read(STDIN, $buffer, 1024)) {
-    $body.= $buffer;
-    $body_tail = $byte_count < 1024 ? $body_tail.$buffer : $buffer;
-    if ($from eq "" and $body =~ /^From:\s*([^\n\r]+)/m) {
-        $from = $1;
-        $from =~ /\<(.+@.+)\>/ and $from = $1;
-    }
-    if ($subject eq "" and $body =~/^Subject:\s(.+)$/m) {
-        $subject = $1;
-    }
+my $header_end = 0;
+while ($_ = <STDIN>) {
+    if ($from eq '' and /^From:.*\s<?([^\s]+@[^\s]+)>?.*/) { $from = $1; }
+    elsif ($subject eq '' and /^Subject:\s(.+)$/) { $subject = $1; }
+    $_ eq "\n" and $header_end = 1;
+    $body.= $_ if $header_end;
 }
-1 while( shift(@$body) ne "\n");
 print "Received from: $from\n";
 if ($body_tail =~ /[\r\n]KEY::([0-9A-F]+)/) { 
     $key = $1; 
@@ -64,7 +59,7 @@ if ($body_tail =~ /[\r\n]KEY::([0-9A-F]+)/) {
 } else { 
    $key = crypt($from, int(time()));
    print "Creating new account with key: $key\n";
-   $body .= "\n\n\n\nKEY::$key\n";
+   $body .= "\n\n\n\nKEY::$key\n\n";
    $new = 1;
 }
 
