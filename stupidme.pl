@@ -41,8 +41,11 @@ sub start_dispatcher($) {
 *STDERR = *STDOUT;
 open STDOUT, ">> $LOG_PATH" or die "Failed opening log file";
 
-our $min_delay = shift @ARGV or $HOUR*2;
-our $max_delay = shift @ARGV or $WEEK*2;
+
+our $min_delay = (shift @ARGV or $HOUR*2);
+our $max_delay = (shift @ARGV or $WEEK*2);
+
+print "Delay: $min_delay - $max_delay\n";
 
 my $buffer;
 my $body = "";
