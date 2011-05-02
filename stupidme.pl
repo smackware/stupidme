@@ -48,11 +48,11 @@ while ($_ = <STDIN>) {
     $_ eq "\n" and $header_end = 1;
     $body.= $_ if $header_end;
 }
-if ($subject =~ /::(\w+)/) {
+if ($subject =~ /::(\X+)/) {
    $key = $1;
    die "No such account: $key.\n" unless ( -f "$DB_PATH/$key.body" );
 } else {
-   $key = crypt($from, int(rand(99)));
+   $key = join('', map(sprintf('%X', ord($_)), split('', crypt($from, int(rand(99))))));
    print "Creating new account with key: $key\n";
    $subject .= "$subject ::$key";
 }
@@ -75,8 +75,9 @@ if (open(my $pid_fh, "<", $DISPATCH_PID_PATH)) {
     chomp($pid = <$pid_fh>);
     close($pid_fh);
 }
-print "Daemon pid is $pid.\n";
-unless ($pid and kill(0, $pid)) {
+if ($pid and kill(0, $pid)) {
+    print "Existing daemon pid is $pid.\n";
+} else {
     print "Starting dispatcher daemon...\n";
     start_dispatcher($DISPATCH_PID_PATH);
 }
