@@ -17,20 +17,18 @@ sub start_dispatcher($) {
         return;
     }
     while (1) {
-        sleep(20);
+        sleep(30);
         my $now = time();
-        my @delivery_files = glob("$DB_PATH/*.next_delivery");
-        for my $filepath (@delivery_files) {
+        for my $filepath ( glob("$DB_PATH/*.next_delivery") ) {
             $filepath =~ /^(.+)\.next_delivery$/;
             my $body_filepath = "$1.body";
-            open (my $fh, "<", $filepath) or next;
-            chomp(my $when = <$fh>);
-            chop(my $to = <$fh>);
-            chomp(my $subject = "Re: ".<$fh>);
+            open(my $fh, "<", $filepath) or next;
+            chomp(my ($when, $to, $subject) = <$fh>);
+	    close($fh);
             if ($when < $now) {
                 print "Sending '$subject' to $to...\n";
-                system("cat $body_filepath | mail -s '$subject' $to") and warn "Failed sending $body_filepath ($subject) to $to\n";
-		rename($filepath, "$filepath.sent")
+                if (system("cat $body_filepath | mail -s '$subject' $to")) {  warn "Failed sending $body_filepath ($subject) to $to\n"; }
+		else { rename($filepath, "$filepath.sent"); }
             }
         }
     }
