@@ -39,10 +39,8 @@ sub start_dispatcher($) {
 
 my $buffer;
 my $body = "";
-my $body_tail = "";
 my $key;
 my $from = "";
-my $new = 0;
 my $subject = "";
 
 my $header_end = 0;
@@ -52,19 +50,18 @@ while ($_ = <STDIN>) {
     $_ eq "\n" and $header_end = 1;
     $body.= $_ if $header_end;
 }
-print "Received from: $from\n";
-if ($body_tail =~ /[\r\n]KEY::([0-9A-F]+)/) { 
-    $key = $1; 
-    print "Got mail with key: $key\n";
-} else { 
-   $key = crypt($from, int(time()));
+if ($subject =~ /::(\w+)/) {
+   $key = $1;
+   die "No such account: $key.\n" unless ( -f "$DB_PATH/$key.body" );
+} else {
+   $key = crypt($from, int(rand(99)));
    print "Creating new account with key: $key\n";
-   $body .= "\n\n\n\nKEY::$key\n\n";
-   $new = 1;
+   $subject .= "$subject ::$key";
+#   $body .= "\n\n## DO NOT REMOVE THIS LINE:\nKEY::$key\n\n";
 }
+print "Received from: $from ($key)\n";
 
 my $mail_filepath = "$DB_PATH/$key.body";
-die "No such account.\n" unless ( -f $mail_filepath or $new );
 my $timestamp_filepath = "$DB_PATH/$key.next_delivery";
 my $delivery_timestamp = int(rand($WEEK)) + ($HOUR*6) + int(time());
 die "Failed to open mail file: $mail_filepath\n" unless open(my $mail_fh, ">", "$mail_filepath");
